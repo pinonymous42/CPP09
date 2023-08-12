@@ -6,7 +6,7 @@
 /*   By: kohei <kohei@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/04 10:32:34 by kohei             #+#    #+#             */
-/*   Updated: 2023/08/06 19:12:19 by kohei            ###   ########.fr       */
+/*   Updated: 2023/08/12 13:54:07 by kohei            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,6 +54,20 @@ void    BitcoinExchange::readFromDB(void)
         }
         std::string key = line.substr(0, line.find(','));
         std::string tmp = line.substr(line.find(',') + 1);
+        if (count == 1)
+        {
+            std::string firstYearStr = key.substr(0, key.find('-'));
+            std::istringstream iss1(firstYearStr);
+            iss1 >> _firstYear;
+            key = key.substr(key.find('-') + 1);
+            std::string firstMonthStr = key.substr(0, key.find('-'));
+            std::istringstream iss2(firstMonthStr);
+            iss2 >> _firstMonth;
+            key = key.substr(key.find('-') + 1);
+            std::string firstDayStr = key;
+            std::istringstream iss3(firstDayStr);
+            iss3 >> _firstDay;
+        }
 
         std::istringstream iss(tmp);
         iss >> value;
@@ -62,11 +76,6 @@ void    BitcoinExchange::readFromDB(void)
         count++;
     }
     ifs.close();
-
-    //for (std::map<std::string, double>::iterator it = _data.begin(); it != _data.end(); it++)
-    //{
-    //    std::cout << std::setprecision(10) << it->first << " " << it->second << std::endl;
-    //}
 }
 
 bool BitcoinExchange::checkFormat(std::string const &date, std::string const &rate)
@@ -92,7 +101,6 @@ bool BitcoinExchange::checkFormat(std::string const &date, std::string const &ra
             return (false);
         }
     }
-    //std::cout << rate << std::endl;
     for (int i = 0; i < (int)rate.length(); i++)
     {
         if (rate[i] == '.' || (i == 0 && rate[i] == '-'))
@@ -110,7 +118,6 @@ bool BitcoinExchange::checkFormat(std::string const &date, std::string const &ra
 
 bool BitcoinExchange::checkDate(std::string const &date)
 {
-    static int count = 0;
     int monthDay[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     std::string tmp = date;
     std::stringstream ss;
@@ -122,13 +129,6 @@ bool BitcoinExchange::checkDate(std::string const &date)
     ss << strYear << " " << strMonth << " " << strDay;
     int year, month, day;
     ss >> year >> month >> day;
-    if (count == 0)
-    {
-        _firstYear = year;
-        _firstMonth = month;
-        _firstDay = day;
-    }
-    count++;
     if (year < 0 || month < 0 || month > 12)
     {
         std::cout << "Error: bad input => ";
@@ -140,6 +140,12 @@ bool BitcoinExchange::checkDate(std::string const &date)
         monthDay[1] = 29;
     }
     if (day < 1 || day > monthDay[month - 1])
+    {
+        std::cout << "Error: bad input => ";
+        std::cout << date << std::endl;
+        return (false);
+    }
+    if (year < _firstYear || (year == _firstYear && month < _firstMonth) || (year == _firstYear && month == _firstMonth && day < _firstDay))
     {
         std::cout << "Error: bad input => ";
         std::cout << date << std::endl;
@@ -182,13 +188,6 @@ double BitcoinExchange::findRate(std::string const &date)
     dayStr = tmp;
     ss1 << yearStr << " " << monthStr << " " << dayStr;
     ss1 >> year >> month >> day;
-
-    if (year < _firstYear || (year == _firstYear && month < _firstMonth) || (year == _firstYear && month == _firstMonth && day < _firstDay))
-    {
-        std::cout << "Error: bad input => ";
-        std::cout << date << std::endl;
-        
-    }
     
     std::map<std::string, double>::iterator it = _data.begin();
     std::map<std::string, double>::iterator itBefore;
